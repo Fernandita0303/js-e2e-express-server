@@ -3,6 +3,8 @@
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
+# Pipeline para Node.js + despliegue a App Service
+
 trigger:
 - main
 
@@ -10,13 +12,32 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
+# 1) Instalar Node
 - task: NodeTool@0
   inputs:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
 
+# 2) Instalar dependencias y generar build
 - script: |
     npm install
     npm run build
   displayName: 'npm install and build'
 
+# 3) Empaquetar la carpeta de build (ajusta si tu build sale en otra carpeta)
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+    includeRootFolder: false
+    archiveType: zip
+    archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+    replaceExistingArchive: true
+  displayName: 'Archive build output'
+
+# 4) Publicar al App Service
+- task: AzureWebApp@1
+  displayName: 'Deploy to Azure Web App'
+  inputs:
+    azureSubscription: 'ProyectoVSF359'   # <-- NOMBRE EXACTO DE LA NUEVA SERVICE CONNECTION
+    appName: 'ProyectoVSF'                     # <-- NOMBRE DE TU APP SERVICE
+    package: '$(Build.ArtifactStagingDirectory)/app.zip'
